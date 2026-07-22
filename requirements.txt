@@ -1,0 +1,13 @@
+pandas
+scikit-learn
+sentence-transformers
+joblib
+openai
+anthropic
+google-generativeai
+groq
+requests
+python-dotenv
+fastapi
+uvicorn
+flask
