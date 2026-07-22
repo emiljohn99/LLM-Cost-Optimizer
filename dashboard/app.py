@@ -50,6 +50,17 @@ def dashboard():
         """
     ).fetchall()
 
+    missing_adapters = conn.execute(
+        """
+        SELECT cheapest_provider AS provider, cheapest_model_name AS model_name,
+               COUNT(*) AS n, SUM(actual_cost - cheapest_cost) AS missed_cost
+        FROM requests_log
+        WHERE provider != cheapest_provider OR model_name != cheapest_model_name
+        GROUP BY cheapest_provider, cheapest_model_name
+        ORDER BY missed_cost DESC
+        """
+    ).fetchall()
+
     recent = conn.execute(
         """
         SELECT prompt, difficulty, provider, model_name, actual_cost, saved_amount, latency_ms, created_at
@@ -82,6 +93,7 @@ def dashboard():
         avg_latency=totals["avg_latency"],
         by_difficulty=by_difficulty,
         by_model=by_model,
+        missing_adapters=missing_adapters,
         recent=recent,
         monthly_projection=monthly_projection,
     )

@@ -1,4 +1,5 @@
 from claude_adapter import ClaudeAdapter
+from deepseek_adapter import DeepSeekAdapter
 from gemini_adapter import GeminiAdapter
 from groq_adapter import GroqAdapter
 from ollama_adapter import OllamaAdapter
@@ -12,6 +13,7 @@ _REGISTRY = {
     "Google": GeminiAdapter(),
     "Groq": GroqAdapter(),
     "Ollama": OllamaAdapter(),
+    "DeepSeek": DeepSeekAdapter(),
 }
 
 
