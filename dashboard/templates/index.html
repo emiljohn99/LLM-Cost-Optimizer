@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>LLM Cost Optimizer — Dashboard</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, Segoe UI, Roboto, sans-serif;
+    background: #0f1117;
+    color: #e6e6e6;
+    margin: 0;
+    padding: 32px;
+  }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  .subtitle { color: #888; margin-bottom: 28px; font-size: 14px; }
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  .card {
+    background: #171a23;
+    border: 1px solid #262a36;
+    border-radius: 10px;
+    padding: 18px;
+  }
+  .card .label { font-size: 12px; color: #999; text-transform: uppercase; letter-spacing: 0.04em; }
+  .card .value { font-size: 26px; font-weight: 600; margin-top: 6px; }
+  .card.highlight .value { color: #4ade80; }
+
+  section { margin-bottom: 32px; }
+  h2 { font-size: 15px; color: #ccc; margin-bottom: 12px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #22252f; }
+  th { color: #888; font-weight: 500; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  th.num { text-align: right; }
+
+  .empty { color: #888; padding: 40px 0; text-align: center; }
+  .prompt-cell { max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+</style>
+</head>
+<body>
+
+<h1>LLM Cost Optimizer</h1>
+<div class="subtitle">Live routing analytics</div>
+
+{% if total == 0 %}
+  <div class="empty">No requests logged yet. Run a few prompts through execution/executor.py first.</div>
+{% else %}
+
+<div class="cards">
+  <div class="card">
+    <div class="label">Total Requests</div>
+    <div class="value">{{ total }}</div>
+  </div>
+  <div class="card">
+    <div class="label">Actual Cost</div>
+    <div class="value">${{ "%.6f"|format(actual) }}</div>
+  </div>
+  <div class="card highlight">
+    <div class="label">Saved</div>
+    <div class="value">${{ "%.6f"|format(saved) }}</div>
+  </div>
+  <div class="card highlight">
+    <div class="label">Savings %</div>
+    <div class="value">{{ "%.1f"|format(pct) }}%</div>
+  </div>
+  <div class="card">
+    <div class="label">Avg Latency</div>
+    <div class="value">{{ "%.0f"|format(avg_latency) }} ms</div>
+  </div>
+</div>
+
+<div class="cards">
+  <div class="card">
+    <div class="label">True Cheapest Possible</div>
+    <div class="value">${{ "%.6f"|format(cheapest_total) }}</div>
+  </div>
+  <div class="card">
+    <div class="label">Missed Savings</div>
+    <div class="value">${{ "%.6f"|format(missed) }}</div>
+  </div>
+  <div class="card">
+    <div class="label">Missed %</div>
+    <div class="value">{{ "%.1f"|format(missed_pct) }}%</div>
+  </div>
+</div>
+<div class="subtitle" style="margin-top: -20px; margin-bottom: 28px;">
+  "True Cheapest" = the lowest-cost model per tier even if we don't have a working key/adapter for it yet.
+  Missed savings shows how much closer we could get by adding more provider adapters.
+</div>
+
+<section>
+  <h2>Estimated Monthly Savings</h2>
+  <table>
+    <tr>{% for label, val in monthly_projection %}<th>{{ label }}</th>{% endfor %}</tr>
+    <tr>{% for label, val in monthly_projection %}<td class="num">${{ "{:,.2f}".format(val) }}</td>{% endfor %}</tr>
+  </table>
+</section>
+
+<section>
+  <h2>By Difficulty</h2>
+  <table>
+    <tr><th>Difficulty</th><th class="num">Requests</th><th class="num">Cost</th><th class="num">Saved</th></tr>
+    {% for row in by_difficulty %}
+    <tr>
+      <td>{{ row.difficulty }}</td>
+      <td class="num">{{ row.n }}</td>
+      <td class="num">${{ "%.6f"|format(row.actual) }}</td>
+      <td class="num">${{ "%.6f"|format(row.baseline - row.actual) }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+</section>
+
+<section>
+  <h2>By Model</h2>
+  <table>
+    <tr><th>Provider</th><th>Model</th><th class="num">Requests</th><th class="num">Cost</th></tr>
+    {% for row in by_model %}
+    <tr>
+      <td>{{ row.provider }}</td>
+      <td>{{ row.model_name }}</td>
+      <td class="num">{{ row.n }}</td>
+      <td class="num">${{ "%.6f"|format(row.actual) }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+</section>
+
+<section>
+  <h2>Recent Requests</h2>
+  <table>
+    <tr>
+      <th>Prompt</th><th>Difficulty</th><th>Model</th>
+      <th class="num">Cost</th><th class="num">Saved</th><th class="num">Latency</th>
+    </tr>
+    {% for row in recent %}
+    <tr>
+      <td class="prompt-cell" title="{{ row.prompt }}">{{ row.prompt }}</td>
+      <td>{{ row.difficulty }}</td>
+      <td>{{ row.provider }}/{{ row.model_name }}</td>
+      <td class="num">${{ "%.6f"|format(row.actual_cost) }}</td>
+      <td class="num">${{ "%.6f"|format(row.saved_amount) }}</td>
+      <td class="num">{{ "%.0f"|format(row.latency_ms) }}ms</td>
+    </tr>
+    {% endfor %}
+  </table>
+</section>
+
+{% endif %}
+
+</body>
+</html>
