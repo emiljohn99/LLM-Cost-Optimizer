@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pandas as pd
 import joblib
 from sentence_transformers import SentenceTransformer
@@ -5,8 +7,8 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 
-DATA_PATH = "../data/prompts.csv"
-MODEL_PATH = "model.pkl"
+DATA_PATH = Path(__file__).parent.parent / "data" / "prompts.csv"
+MODEL_PATH = Path(__file__).parent / "model.pkl"
 EMBEDDER_NAME = "all-MiniLM-L6-v2"
 
 df = pd.read_csv(DATA_PATH)

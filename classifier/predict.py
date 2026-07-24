@@ -21,6 +21,7 @@ def classify(prompt: str):
 
 if __name__ == "__main__":
     prompt = " ".join(sys.argv[1:]) or "Explain how a hash map works."
+    
     label, scores = classify(prompt)
     print(f"Prompt: {prompt}")
     print(f"Predicted difficulty: {label}")
